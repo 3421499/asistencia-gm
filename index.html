@@ -359,7 +359,7 @@ function renderCal(){
     var k=key(y,m,d);
     var isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
     var hasDot=state.data[k]&&state.data[k].length>0;
-    cells+='<div class="cal-cell'+(isToday?' today':'')+(hasDot?' has-data':'')+'" onclick="openDay(''+k+'')">'
+    cells+='<div class="cal-cell'+(isToday?' today':'')+(hasDot?' has-data':'')+'" onclick="openDay(\"'+k+'\")">'
       +'<span class="cal-num">'+d+'</span>'+(hasDot?'<span class="cal-dot"></span>':'')+'</div>';
   }
   return '<div class="section-label">Control de asistencia</div>'
@@ -444,7 +444,7 @@ function renderSearch(){
   if(!patient){
     if(filtered.length>0){
       listHtml='<div class="sug-list">'+filtered.map(function(p){
-        return '<div class="sug-item" onclick="selectPatient(''+esc(p.name)+'')">'
+        return '<div class="sug-item" onclick="selectPatient(\x27"+esc(p.name)+"\x27)">'
           +'<div class="sug-av">'+initials(p.name)+'</div>'
           +'<div><div class="sug-name">'+esc(p.name)+'</div><div class="sug-count">'+p.count+' '+(p.count===1?'asistencia':'asistencias')+'</div></div>'
           +'<span class="sug-arrow">&#8250;</span></div>';
@@ -492,7 +492,7 @@ function onSearchInput(v){
   if(!cont) return;
   if(filtered.length>0){
     cont.innerHTML='<div class="sug-list">'+filtered.map(function(p){
-      return '<div class="sug-item" onclick="selectPatient(''+esc(p.name)+'')">'
+      return '<div class="sug-item" onclick="selectPatient(\x27"+esc(p.name)+"\x27)">'
         +'<div class="sug-av">'+initials(p.name)+'</div>'
         +'<div><div class="sug-name">'+esc(p.name)+'</div><div class="sug-count">'+p.count+' '+(p.count===1?'asistencia':'asistencias')+'</div></div>'
         +'<span class="sug-arrow">&#8250;</span></div>';
@@ -551,7 +551,7 @@ function openDataModal(){
       return '<div class="modal-day-row">'
         +'<span><span class="modal-day-label">'+fmtDate(e[0])+'</span>'
         +'<span class="modal-day-count">'+e[1].length+' '+(e[1].length===1?'paciente':'pacientes')+'</span></span>'
-        +'<button class="modal-del-btn" onclick="deleteDay(''+e[0]+'')">Eliminar</button>'
+        +'<button class="modal-del-btn" onclick="deleteDay(\"'+e[0]+'\")">Eliminar</button>'
         +'</div>';
     }).join('');
   }
