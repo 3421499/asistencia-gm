@@ -520,7 +520,7 @@ function changeMonth(dir){
   else if(state.month>11){state.month=0;state.year++;}
   render();
 }
-function openDay(k){state.selectedDate=k;state.view='day';state.form={name:'',acts:'',obs:''};render();}
+function openDay(k){state.tab='calendar';state.selectedDate=k;state.view='day';state.form={name:'',acts:'',obs:''};render();}
 function goBack(){state.view='calendar';render();}
 function backSearch(){state.search.patient=null;state.search.query='';render();}
 function selectPatient(name){state.search.patient=name;state.search.query=name;render();}
