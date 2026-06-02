@@ -346,10 +346,13 @@ function render(){
     ?(state.view==='calendar'?renderCal():renderDay())
     :renderSearch();
   updateBadge();
-  // Bind calendar cell clicks
+  // Bind calendar cell clicks and suggestion items
   setTimeout(function(){
     document.querySelectorAll('.cal-cell[data-date]').forEach(function(cell){
       cell.onclick=function(){openDay(this.getAttribute('data-date'));};
+    });
+    document.querySelectorAll('.sug-item[data-name]').forEach(function(item){
+      item.onclick=function(){selectPatient(this.getAttribute('data-name'));};
     });
   },0);
 }
@@ -451,7 +454,7 @@ function renderSearch(){
   if(!patient){
     if(filtered.length>0){
       listHtml='<div class="sug-list">'+filtered.map(function(p){
-        return '<div class="sug-item" onclick="selectPatient(\x27"+esc(p.name)+"\x27)">'
+        return '<div class="sug-item" data-name="'+esc(p.name)+'">'
           +'<div class="sug-av">'+initials(p.name)+'</div>'
           +'<div><div class="sug-name">'+esc(p.name)+'</div><div class="sug-count">'+p.count+' '+(p.count===1?'asistencia':'asistencias')+'</div></div>'
           +'<span class="sug-arrow">&#8250;</span></div>';
@@ -499,7 +502,7 @@ function onSearchInput(v){
   if(!cont) return;
   if(filtered.length>0){
     cont.innerHTML='<div class="sug-list">'+filtered.map(function(p){
-      return '<div class="sug-item" onclick="selectPatient(\x27"+esc(p.name)+"\x27)">'
+      return '<div class="sug-item" data-name="'+esc(p.name)+'">'
         +'<div class="sug-av">'+initials(p.name)+'</div>'
         +'<div><div class="sug-name">'+esc(p.name)+'</div><div class="sug-count">'+p.count+' '+(p.count===1?'asistencia':'asistencias')+'</div></div>'
         +'<span class="sug-arrow">&#8250;</span></div>';
