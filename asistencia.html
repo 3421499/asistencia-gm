@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gimnasio Medico - Control de Asistencia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --bg: #f0f2f5;
+  --header-bg: #1a2535;
+  --header-border: #e53935;
+  --card-bg: #ffffff;
+  --card-border: #e2e6ea;
+  --text-primary: #1a2535;
+  --text-secondary: #5a6a7e;
+  --text-muted: #8fa0b4;
+  --accent: #e53935;
+  --accent-dark: #b71c1c;
+  --green: #1D9E75;
+  --green-light: #e8f7f1;
+  --green-dark: #0F6E56;
+  --font: 'Barlow', sans-serif;
+  --font-display: 'Barlow Condensed', sans-serif;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text-primary);min-height:100vh}
+
+/* HEADER */
+.header{background:var(--header-bg);border-bottom:3px solid var(--header-border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100}
+.header-left{display:flex;align-items:center;gap:12px}
+.header-logo{height:44px;width:44px;object-fit:contain;border-radius:6px}
+.header-title{color:#fff;font-family:var(--font-display);font-size:18px;font-weight:700;letter-spacing:0.03em;line-height:1.1}
+.header-sub{color:#8fa0b4;font-size:11px;font-weight:400;letter-spacing:0.08em;text-transform:uppercase}
+.header-right{display:flex;align-items:center;gap:10px}
+.header-badge{background:#e53935;color:#fff;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;font-family:var(--font-display);letter-spacing:0.04em}
+.version{color:#4a5a6a;font-size:11px;font-family:var(--font-display);font-weight:600}
+
+/* NAV */
+.subnav{background:var(--header-bg);border-bottom:1px solid #243040;padding:0 24px;display:flex;gap:0}
+.subnav-btn{background:none;border:none;cursor:pointer;color:#8fa0b4;font-family:var(--font);font-size:13px;font-weight:500;padding:10px 18px;border-bottom:2px solid transparent;transition:all 0.15s;display:flex;align-items:center;gap:7px}
+.subnav-btn:hover{color:#fff}
+.subnav-btn.active{color:#fff;border-bottom-color:var(--header-border)}
+.subnav-icon{font-size:15px}
+
+/* MAIN */
+.main{padding:28px 24px;max-width:960px;margin:0 auto}
+
+/* SECTION HEADER */
+.section-label{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:6px;margin-bottom:14px}
+.section-label::before{content:'';display:inline-block;width:14px;height:2px;background:var(--accent)}
+
+/* CARD */
+.card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius);padding:20px 22px;margin-bottom:16px}
+.card-title{font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+/* CALENDAR */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.cal-month{font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--text-primary);letter-spacing:0.02em}
+.cal-controls{display:flex;gap:6px}
+.cal-btn{background:none;border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:5px 12px;cursor:pointer;color:var(--text-secondary);font-size:14px;transition:all 0.1s}
+.cal-btn:hover{background:var(--bg);border-color:#c0cdd8}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal-dayname{text-align:center;font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);padding:6px 0}
+.cal-cell{aspect-ratio:1;border-radius:var(--radius-sm);border:1px solid var(--card-border);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;background:#fff;transition:all 0.12s}
+.cal-cell:hover{background:#f7f9fb;border-color:#b0c0d0;transform:translateY(-1px)}
+.cal-cell.empty{border-color:transparent;background:none;cursor:default;transform:none}
+.cal-cell.today{border:2px solid var(--accent);background:#fff9f9}
+.cal-cell.today .cal-num{color:var(--accent);font-weight:700}
+.cal-cell.has-data{background:#f0faf5}
+.cal-cell.has-data .cal-num{color:var(--green-dark)}
+.cal-num{font-family:var(--font-display);font-size:15px;font-weight:600;color:var(--text-primary)}
+.cal-dot{width:5px;height:5px;border-radius:50%;background:var(--green);position:absolute;bottom:5px}
+.cal-hint{text-align:center;font-size:12px;color:var(--text-muted);margin-top:10px}
+
+/* DAY VIEW */
+.back-btn{background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:13px;font-weight:500;display:flex;align-items:center;gap:5px;padding:0;margin-bottom:16px;transition:color 0.1s}
+.back-btn:hover{color:var(--text-primary)}
+.day-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.day-title{font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--text-primary)}
+.day-count{background:var(--green-light);color:var(--green-dark);font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;font-family:var(--font-display);letter-spacing:0.04em}
+
+/* PATIENT CARD */
+.p-card{background:#fff;border:1px solid var(--card-border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;border-left:3px solid var(--green)}
+.p-card-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.p-avatar{width:36px;height:36px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--green-dark);flex-shrink:0}
+.p-name{font-size:14px;font-weight:600;color:var(--text-primary);flex:1}
+.p-time{font-size:11px;color:var(--text-muted);font-family:var(--font-display)}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);padding:3px 5px;border-radius:4px;font-size:16px;line-height:1;transition:all 0.1s}
+.del-btn:hover{color:var(--accent);background:#fef0f0}
+.p-detail{font-size:12px;padding-top:8px;border-top:1px solid #f0f2f5}
+.p-detail-row{display:flex;gap:8px;margin-bottom:4px}
+.p-detail-row:last-child{margin-bottom:0}
+.p-lbl{font-weight:600;color:var(--text-muted);flex-shrink:0;min-width:95px;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;padding-top:1px}
+.p-val{color:var(--text-secondary);line-height:1.5}
+
+/* ADD FORM */
+.add-section{background:#f7f9fb;border:1px solid var(--card-border);border-radius:var(--radius);padding:18px 20px}
+.form-title{font-family:var(--font-display);font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.field-lbl{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:5px}
+.field-wrap{margin-bottom:12px}
+.field-wrap input,.field-wrap textarea{width:100%;font-family:var(--font);font-size:13px;padding:9px 12px;border:1px solid #d0dae4;border-radius:var(--radius-sm);background:#fff;color:var(--text-primary);outline:none;transition:border-color 0.15s}
+.field-wrap input:focus,.field-wrap textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(29,158,117,0.1)}
+.field-wrap textarea{resize:vertical;min-height:62px}
+.submit-btn{width:100%;padding:10px;font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;transition:background 0.15s}
+.submit-btn:hover{background:var(--green-dark)}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:36px 20px;color:var(--text-muted)}
+.empty-icon{font-size:32px;display:block;margin-bottom:10px}
+.empty-text{font-size:13px}
+
+/* SEARCH */
+.search-wrap{position:relative;margin-bottom:14px}
+.search-wrap input{width:100%;font-family:var(--font);font-size:14px;padding:10px 14px 10px 40px;border:1px solid var(--card-border);border-radius:var(--radius-sm);background:#fff;color:var(--text-primary);outline:none;transition:border-color 0.15s}
+.search-wrap input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(29,158,117,0.1)}
+.search-ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:15px;pointer-events:none}
+.sug-list{background:#fff;border:1px solid var(--card-border);border-radius:var(--radius);overflow:hidden}
+.sug-item{padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid #f0f2f5;transition:background 0.1s}
+.sug-item:last-child{border-bottom:none}
+.sug-item:hover{background:#f7f9fb}
+.sug-av{width:30px;height:30px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:11px;font-weight:700;color:var(--green-dark);flex-shrink:0}
+.sug-name{font-size:13px;font-weight:600;color:var(--text-primary)}
+.sug-count{font-size:11px;color:var(--text-muted)}
+.sug-arrow{margin-left:auto;color:var(--text-muted);font-size:13px}
+
+/* REPORT */
+.report-top{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.report-av{width:48px;height:48px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--green-dark);flex-shrink:0}
+.report-name{font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--text-primary)}
+.report-period{font-size:12px;color:var(--text-muted);margin-top:2px}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat-box{background:#f7f9fb;border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:12px 14px}
+.stat-lbl{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px}
+.stat-val{font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--text-primary)}
+.r-entry{background:#fff;border:1px solid var(--card-border);border-radius:var(--radius);border-left:3px solid var(--green);padding:13px 15px;margin-bottom:8px}
+.r-entry-date{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--green-dark);margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.r-row{font-size:12px;color:var(--text-secondary);margin-bottom:4px;display:flex;gap:8px}
+.r-row:last-child{margin-bottom:0}
+.r-lbl{font-weight:600;color:var(--text-muted);flex-shrink:0;min-width:95px;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;padding-top:1px}
+
+/* FILTER + ACTIONS */
+.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.filter-grid input{font-family:var(--font);font-size:13px;padding:9px 12px;border:1px solid #d0dae4;border-radius:var(--radius-sm);background:#fff;color:var(--text-primary);outline:none;width:100%;transition:border-color 0.15s}
+.filter-grid input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(29,158,117,0.1)}
+.action-row{display:flex;gap:8px;margin-bottom:16px}
+.filter-btn{flex:1;padding:9px;font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;transition:background 0.15s}
+.filter-btn:hover{background:var(--green-dark)}
+.pdf-btn{padding:9px 16px;font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;background:#fff;color:var(--accent);border:1px solid var(--accent);border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;gap:7px;transition:all 0.15s}
+.pdf-btn:hover{background:#fff5f5}
+
+/* LOADING */
+.loading-overlay{position:fixed;inset:0;background:rgba(26,37,53,0.92);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.loading-spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,0.2);border-top-color:#1D9E75;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:#fff;font-family:var(--font-display);font-size:14px;letter-spacing:0.08em}
+.toast{position:fixed;bottom:24px;right:24px;background:#1a2535;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-family:var(--font);opacity:0;transition:opacity 0.3s;z-index:500;border-left:3px solid #1D9E75}
+.toast.show{opacity:1}
+
+.loading-overlay{position:fixed;inset:0;background:rgba(26,37,53,0.92);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.loading-spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,0.2);border-top-color:#1D9E75;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:#fff;font-family:var(--font-display);font-size:14px;letter-spacing:0.08em}
+.toast{position:fixed;bottom:24px;right:24px;background:#1a2535;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-family:var(--font);opacity:0;transition:opacity 0.3s;z-index:500;border-left:3px solid #1D9E75}
+.toast.show{opacity:1}
+.footer{text-align:center;padding:24px;margin-top:8px}
+.footer-btn{background:none;border:none;cursor:pointer;font-family:var(--font);font-size:12px;color:var(--text-muted);display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--radius-sm);transition:all 0.15s}
+.footer-btn:hover{color:var(--accent);background:#fef0f0}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:var(--radius);padding:24px;width:90%;max-width:420px}
+.modal-title{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--text-secondary);margin-bottom:18px;line-height:1.5}
+.modal-section{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px}
+.modal-day-list{max-height:220px;overflow-y:auto;border:1px solid var(--card-border);border-radius:var(--radius-sm);margin-bottom:16px}
+.modal-day-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid #f0f2f5;font-size:13px}
+.modal-day-row:last-child{border-bottom:none}
+.modal-day-label{color:var(--text-primary);font-weight:500}
+.modal-day-count{font-size:11px;color:var(--text-muted);margin-left:6px}
+.modal-del-btn{background:none;border:1px solid #f0c0c0;border-radius:4px;cursor:pointer;color:#e53935;font-size:11px;font-weight:600;padding:3px 8px;font-family:var(--font-display);transition:all 0.1s}
+.modal-del-btn:hover{background:#fef0f0}
+.modal-actions{display:flex;gap:8px;margin-top:4px}
+.modal-cancel{flex:1;padding:9px;font-family:var(--font-display);font-size:13px;font-weight:700;background:#fff;color:var(--text-secondary);border:1px solid var(--card-border);border-radius:var(--radius-sm);cursor:pointer}
+.modal-cancel:hover{background:var(--bg)}
+.modal-danger{flex:1;padding:9px;font-family:var(--font-display);font-size:13px;font-weight:700;background:#e53935;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer}
+.modal-danger:hover{background:#b71c1c}
+.empty-modal{text-align:center;padding:20px;font-size:13px;color:var(--text-muted)}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Conectando con Firebase...</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<header class="header">
+  <div class="header-left">
+    <img src="logo.png" alt="Logo" class="header-logo">
+    <div>
+      <div class="header-title">Gimnasio Medico</div>
+      <div class="header-sub">Centro Clinico La Serena</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="header-badge" id="patient-count">0 pacientes</span>
+    <span class="version">v2.0</span>
+  </div>
+</header>
+
+<nav class="subnav">
+  <button class="subnav-btn active" id="tab-calendar" onclick="switchTab('calendar')">&#128197; Asistencia</button>
+  <button class="subnav-btn" id="tab-search" onclick="switchTab('search')">&#128269; Buscar paciente</button>
+</nav>
+
+<main class="main" id="main"></main>
+
+<footer class="footer">
+  <button class="footer-btn" onclick="openDataModal()">&#9881; Gestionar registros</button>
+</footer>
+
+<div class="modal-overlay" id="data-modal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-title">Gestionar registros</div>
+    <div class="modal-sub">Elimina registros de dias especificos o borra todos los datos.</div>
+    <div class="modal-section">Eliminar dia especifico</div>
+    <div class="modal-day-list" id="modal-day-list"></div>
+    <div class="modal-section" style="margin-top:4px">Borrar todo</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Esta accion eliminara permanentemente todos los registros.</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="modal-danger" onclick="clearAll()">&#9888; Borrar todo</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+
+var firebaseConfig = {
+  apiKey: "AIzaSyCcBgBlItDHOZsniGNX_axdbcZBgZoNxjI",
+  authDomain: "asistencia-gm.firebaseapp.com",
+  projectId: "asistencia-gm",
+  storageBucket: "asistencia-gm.firebasestorage.app",
+  messagingSenderId: "611811626340",
+  appId: "1:611811626340:web:d68b2a3c57d06ce64e7e71"
+};
+firebase.initializeApp(firebaseConfig);
+var db = firebase.firestore();
+
+var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+var DIAS = ['Lun','Mar','Mie','Jue','Vie','Sab','Dom'];
+
+var state = {
+  tab:'calendar', view:'calendar',
+  year:new Date().getFullYear(), month:new Date().getMonth(),
+  selectedDate:null, data:{},
+  form:{name:'',acts:'',obs:''},
+  search:{query:'',from:'',to:'',patient:null}
+};
+
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2500);
+}
+function hideLoading(){document.getElementById('loading').style.display='none';}
+function showLoading(msg){
+  var el=document.getElementById('loading');
+  el.style.display='flex';
+  el.querySelector('.loading-text').textContent=msg||'Cargando...';
+}
+
+function loadAllData(){
+  db.collection('asistencia').get().then(function(snap){
+    snap.forEach(function(d){state.data[d.id]=d.data().patients||[];});
+    hideLoading(); render();
+  }).catch(function(e){
+    console.error('Firebase error:',e);
+    hideLoading(); showToast('Error al conectar: '+e.message); render();
+  });
+}
+
+function saveDay(dateKey){
+  return db.collection('asistencia').doc(dateKey).set({patients:state.data[dateKey]||[]})
+    .then(function(){showToast('Guardado');})
+    .catch(function(e){showToast('Error al guardar: '+e.message);});
+}
+
+function key(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');}
+function initials(n){return n.trim().split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()||'?';}
+function fmtDate(k){var p=k.split('-').map(Number);return p[2]+' de '+MESES[p[1]-1]+' '+p[0];}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function updateBadge(){
+  var all=new Set();
+  Object.values(state.data).forEach(function(list){list.forEach(function(p){all.add(p.name.trim().toLowerCase());});});
+  var n=all.size;
+  document.getElementById('patient-count').textContent=n+' '+(n===1?'paciente':'pacientes');
+}
+
+function switchTab(tab){
+  state.tab=tab;
+  if(tab==='calendar') state.view='calendar';
+  state.search.patient=null;
+  document.getElementById('tab-calendar').classList.toggle('active',tab==='calendar');
+  document.getElementById('tab-search').classList.toggle('active',tab==='search');
+  render();
+}
+
+function getAllPatients(){
+  var map={};
+  Object.entries(state.data).forEach(function(e){
+    e[1].forEach(function(p){
+      var n=p.name.trim().toLowerCase();
+      if(!map[n]) map[n]={name:p.name,count:0};
+      map[n].count++;
+    });
+  });
+  return Object.values(map).sort(function(a,b){return a.name.localeCompare(b.name);});
+}
+
+function getHistory(name,from,to){
+  var entries=[];
+  Object.entries(state.data).sort(function(a,b){return a[0].localeCompare(b[0]);}).forEach(function(e){
+    var date=e[0],list=e[1];
+    if(from&&date<from) return;
+    if(to&&date>to) return;
+    list.forEach(function(p){
+      if(p.name.trim().toLowerCase()===name.trim().toLowerCase()) entries.push(Object.assign({date:date},p));
+    });
+  });
+  return entries;
+}
+
+function render(){
+  var el=document.getElementById('main');
+  el.innerHTML=state.tab==='calendar'
+    ?(state.view==='calendar'?renderCal():renderDay())
+    :renderSearch();
+  updateBadge();
+}
+
+function renderCal(){
+  var y=state.year,m=state.month;
+  var first=new Date(y,m,1).getDay();
+  var offset=first===0?6:first-1;
+  var days=new Date(y,m+1,0).getDate();
+  var today=new Date();
+  var cells='';
+  for(var i=0;i<offset;i++) cells+='<div class="cal-cell empty"></div>';
+  for(var d=1;d<=days;d++){
+    var k=key(y,m,d);
+    var isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
+    var hasDot=state.data[k]&&state.data[k].length>0;
+    cells+='<div class="cal-cell'+(isToday?' today':'')+(hasDot?' has-data':'')+'" onclick="openDay(\"'+k+'\")">'
+      +'<span class="cal-num">'+d+'</span>'+(hasDot?'<span class="cal-dot"></span>':'')+'</div>';
+  }
+  return '<div class="section-label">Control de asistencia</div>'
+    +'<div class="card">'
+    +'<div class="cal-header"><span class="cal-month">'+MESES[m]+' '+y+'</span>'
+    +'<div class="cal-controls">'
+    +'<button class="cal-btn" onclick="changeMonth(-1)">&#8592;</button>'
+    +'<button class="cal-btn" onclick="changeMonth(1)">&#8594;</button>'
+    +'</div></div>'
+    +'<div class="cal-grid">'+DIAS.map(function(d){return '<div class="cal-dayname">'+d+'</div>';}).join('')+cells+'</div>'
+    +'<p class="cal-hint">&#9679; Dias con asistencia registrada &nbsp;|&nbsp; Pincha un dia para agregar pacientes</p>'
+    +'</div>';
+}
+
+function renderDay(){
+  var k=state.selectedDate;
+  var p=k.split('-').map(Number),y=p[0],m=p[1],d=p[2];
+  var patients=state.data[k]||[];
+  var cards=patients.length===0
+    ?'<div class="empty-state"><span class="empty-icon">&#128101;</span><p class="empty-text">Sin asistentes registrados para este dia</p></div>'
+    :patients.map(function(p,i){
+      return '<div class="p-card">'
+        +'<div class="p-card-top">'
+        +'<div class="p-avatar">'+initials(p.name)+'</div>'
+        +'<span class="p-name">'+esc(p.name)+'</span>'
+        +'<span class="p-time">'+p.time+'</span>'
+        +'<button class="del-btn" onclick="deletePatient('+i+')" title="Eliminar">&#10005;</button>'
+        +'</div>'
+        +'<div class="p-detail">'
+        +'<div class="p-detail-row"><span class="p-lbl">Actividades</span><span class="p-val">'+(esc(p.acts)||'-')+'</span></div>'
+        +(p.obs?'<div class="p-detail-row"><span class="p-lbl">Observaciones</span><span class="p-val">'+esc(p.obs)+'</span></div>':'')
+        +'</div></div>';
+    }).join('');
+  return '<button class="back-btn" onclick="goBack()">&#8592; Volver al calendario</button>'
+    +'<div class="day-header">'
+    +'<span class="day-title">'+d+' de '+MESES[m-1]+' '+y+'</span>'
+    +'<span class="day-count">'+patients.length+' '+(patients.length===1?'paciente':'pacientes')+'</span>'
+    +'</div>'
+    +cards
+    +'<div class="add-section" style="margin-top:16px">'
+    +'<div class="form-title">+ Registrar asistencia</div>'
+    +'<div class="field-wrap"><div class="field-lbl">Nombre del paciente</div>'
+    +'<input type="text" id="f-name" placeholder="Ej: Juan Perez" value="'+esc(state.form.name)+'" oninput="state.form.name=this.value"></div>'
+    +'<div class="field-wrap"><div class="field-lbl">Actividades</div>'
+    +'<textarea id="f-acts" placeholder="Describe las actividades realizadas..." oninput="state.form.acts=this.value">'+esc(state.form.acts)+'</textarea></div>'
+    +'<div class="field-wrap"><div class="field-lbl">Observaciones</div>'
+    +'<textarea id="f-obs" placeholder="Notas clinicas, evolucion, indicaciones..." oninput="state.form.obs=this.value">'+esc(state.form.obs)+'</textarea></div>'
+    +'<button class="submit-btn" onclick="addPatient()">Registrar asistencia</button>'
+    +'</div>';
+}
+
+function renderSearch(){
+  var q=state.search.query.toLowerCase().trim();
+  var all=getAllPatients();
+  var filtered=q?all.filter(function(p){return p.name.toLowerCase().indexOf(q)>-1;}):all;
+  var patient=state.search.patient;
+  var reportHtml='';
+  if(patient){
+    var entries=getHistory(patient,state.search.from,state.search.to);
+    var fl=state.search.from?fmtDate(state.search.from):'inicio del registro';
+    var tl=state.search.to?fmtDate(state.search.to):'hoy';
+    var eHtml=entries.length===0
+      ?'<div class="empty-state"><span class="empty-icon">&#128197;</span><p class="empty-text">Sin asistencias en el periodo seleccionado</p></div>'
+      :entries.map(function(e){
+        return '<div class="r-entry">'
+          +'<div class="r-entry-date">&#128197; '+fmtDate(e.date)+' &nbsp;&middot;&nbsp; '+e.time+'</div>'
+          +'<div class="r-row"><span class="r-lbl">Actividades</span><span>'+(esc(e.acts)||'-')+'</span></div>'
+          +(e.obs?'<div class="r-row"><span class="r-lbl">Observaciones</span><span>'+esc(e.obs)+'</span></div>':'')
+          +'</div>';
+      }).join('');
+    reportHtml='<div class="report-top">'
+      +'<div class="report-av">'+initials(patient)+'</div>'
+      +'<div style="flex:1"><div class="report-name">'+esc(patient)+'</div>'
+      +'<div class="report-period">Periodo: '+fl+' -> '+tl+'</div></div></div>'
+      +'<div class="stats-row">'
+      +'<div class="stat-box"><div class="stat-lbl">Asistencias</div><div class="stat-val">'+entries.length+'</div></div>'
+      +'<div class="stat-box"><div class="stat-lbl">Primera visita</div><div class="stat-val" style="font-size:13px">'+(entries.length?fmtDate(entries[0].date):'-')+'</div></div>'
+      +'<div class="stat-box"><div class="stat-lbl">Ultima visita</div><div class="stat-val" style="font-size:13px">'+(entries.length?fmtDate(entries[entries.length-1].date):'-')+'</div></div>'
+      +'</div>'+eHtml;
+  }
+  var listHtml='';
+  if(!patient){
+    if(filtered.length>0){
+      listHtml='<div class="sug-list">'+filtered.map(function(p){
+        return '<div class="sug-item" onclick="selectPatient(\x27"+esc(p.name)+"\x27)">'
+          +'<div class="sug-av">'+initials(p.name)+'</div>'
+          +'<div><div class="sug-name">'+esc(p.name)+'</div><div class="sug-count">'+p.count+' '+(p.count===1?'asistencia':'asistencias')+'</div></div>'
+          +'<span class="sug-arrow">&#8250;</span></div>';
+      }).join('')+'</div>';
+    } else if(q){
+      listHtml='<div class="empty-state"><span class="empty-icon">&#128269;</span><p class="empty-text">No se encontro ningun paciente</p></div>';
+    } else if(all.length===0){
+      listHtml='<div class="empty-state"><span class="empty-icon">&#128101;</span><p class="empty-text">Aun no hay pacientes registrados</p></div>';
+    }
+  }
+  var html='<div class="section-label">Buscar paciente</div>'
+    +(patient?'<button class="back-btn" onclick="backSearch()">&#8592; Volver al buscador</button>':'')
+    +'<div class="card">'
+    +'<div class="search-wrap"><span class="search-ico">&#128269;</span>'
+    +'<input type="text" id="search-input" placeholder="Buscar por nombre..." value="'+esc(state.search.query)+'" autocomplete="off"></div>'
+    +(!patient?'<div id="sug-container">'+listHtml+'</div>':'')
+    +(patient?
+      '<div class="field-lbl" style="margin-bottom:8px">Filtrar por rango de fechas</div>'
+      +'<div class="filter-grid">'
+      +'<div><div class="field-lbl" style="margin-bottom:5px">Desde</div><input type="date" id="f-from" value="'+state.search.from+'"></div>'
+      +'<div><div class="field-lbl" style="margin-bottom:5px">Hasta</div><input type="date" id="f-to" value="'+state.search.to+'"></div>'
+      +'</div>'
+      +'<div class="action-row">'
+      +'<button class="filter-btn" onclick="applyFilter()">Aplicar filtro</button>'
+      +'<button class="pdf-btn" onclick="exportPDF()">&#128438; Exportar PDF</button>'
+      +'</div>'+reportHtml
+    :'')
+    +'</div>';
+  setTimeout(function(){
+    var si=document.getElementById('search-input');
+    if(si){
+      si.addEventListener('input',function(){onSearchInput(this.value);});
+      if(!state.search.patient){si.focus();var l=si.value.length;si.setSelectionRange(l,l);}
+    }
+  },0);
+  return html;
+}
+
+function onSearchInput(v){
+  state.search.query=v; state.search.patient=null;
+  var q=v.toLowerCase().trim();
+  var all=getAllPatients();
+  var filtered=q?all.filter(function(p){return p.name.toLowerCase().indexOf(q)>-1;}):all;
+  var cont=document.getElementById('sug-container');
+  if(!cont) return;
+  if(filtered.length>0){
+    cont.innerHTML='<div class="sug-list">'+filtered.map(function(p){
+      return '<div class="sug-item" onclick="selectPatient(\x27"+esc(p.name)+"\x27)">'
+        +'<div class="sug-av">'+initials(p.name)+'</div>'
+        +'<div><div class="sug-name">'+esc(p.name)+'</div><div class="sug-count">'+p.count+' '+(p.count===1?'asistencia':'asistencias')+'</div></div>'
+        +'<span class="sug-arrow">&#8250;</span></div>';
+    }).join('')+'</div>';
+  } else if(q){
+    cont.innerHTML='<div class="empty-state"><span class="empty-icon">&#128269;</span><p class="empty-text">No se encontro ningun paciente</p></div>';
+  } else {
+    cont.innerHTML='';
+  }
+}
+
+function changeMonth(dir){
+  state.month+=dir;
+  if(state.month<0){state.month=11;state.year--;}
+  else if(state.month>11){state.month=0;state.year++;}
+  render();
+}
+function openDay(k){state.selectedDate=k;state.view='day';state.form={name:'',acts:'',obs:''};render();}
+function goBack(){state.view='calendar';render();}
+function backSearch(){state.search.patient=null;state.search.query='';render();}
+function selectPatient(name){state.search.patient=name;state.search.query=name;render();}
+function applyFilter(){state.search.from=document.getElementById('f-from').value;state.search.to=document.getElementById('f-to').value;render();}
+
+function deletePatient(i){
+  if(!confirm('Eliminar este registro?')) return;
+  state.data[state.selectedDate].splice(i,1);
+  saveDay(state.selectedDate);
+  render();
+}
+
+function addPatient(){
+  var name=document.getElementById('f-name').value.trim();
+  if(!name){document.getElementById('f-name').focus();return;}
+  if(!state.data[state.selectedDate]) state.data[state.selectedDate]=[];
+  var now=new Date();
+  state.data[state.selectedDate].push({
+    name:name,
+    acts:document.getElementById('f-acts').value.trim(),
+    obs:document.getElementById('f-obs').value.trim(),
+    time:now.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})
+  });
+  state.form={name:'',acts:'',obs:''};
+  saveDay(state.selectedDate);
+  render();
+}
+
+function openDataModal(){
+  var list=document.getElementById('modal-day-list');
+  var days=Object.entries(state.data)
+    .filter(function(e){return e[1]&&e[1].length>0;})
+    .sort(function(a,b){return b[0].localeCompare(a[0]);});
+  if(days.length===0){
+    list.innerHTML='<div class="empty-modal">No hay registros guardados</div>';
+  } else {
+    list.innerHTML=days.map(function(e){
+      return '<div class="modal-day-row">'
+        +'<span><span class="modal-day-label">'+fmtDate(e[0])+'</span>'
+        +'<span class="modal-day-count">'+e[1].length+' '+(e[1].length===1?'paciente':'pacientes')+'</span></span>'
+        +'<button class="modal-del-btn" onclick="deleteDay(\"'+e[0]+'\")">Eliminar</button>'
+        +'</div>';
+    }).join('');
+  }
+  document.getElementById('data-modal').classList.add('open');
+}
+function closeModal(){document.getElementById('data-modal').classList.remove('open');}
+function closeModalOutside(e){if(e.target===document.getElementById('data-modal'))closeModal();}
+
+function deleteDay(k){
+  if(!confirm('Eliminar todos los registros del '+fmtDate(k)+'?')) return;
+  delete state.data[k];
+  db.collection('asistencia').doc(k).delete()
+    .then(function(){showToast('Dia eliminado');render();openDataModal();})
+    .catch(function(e){showToast('Error: '+e.message);});
+}
+
+function clearAll(){
+  if(!confirm('Estas seguro? Se eliminaran TODOS los registros permanentemente.')) return;
+  showLoading('Eliminando datos...');
+  var keys=Object.keys(state.data);
+  var promises=keys.map(function(k){return db.collection('asistencia').doc(k).delete();});
+  Promise.all(promises).then(function(){
+    state.data={};
+    hideLoading();showToast('Todos los registros eliminados');render();closeModal();
+  }).catch(function(e){hideLoading();showToast('Error: '+e.message);});
+}
+
+function exportPDF(){
+  if(typeof window.jspdf==='undefined'){alert('Cargando PDF, espera un momento...');return;}
+  var jsPDF=window.jspdf.jsPDF;
+  var doc=new jsPDF({unit:'mm',format:'a4'});
+  var patient=state.search.patient;
+  var entries=getHistory(patient,state.search.from,state.search.to);
+  var fl=state.search.from?fmtDate(state.search.from):'inicio del registro';
+  var tl=state.search.to?fmtDate(state.search.to):'hoy';
+  var today=new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
+  var pw=210,mg=20,cw=pw-mg*2;
+  var y=0;
+  doc.setFillColor(26,37,53);doc.rect(0,0,210,18,'F');
+  doc.setFillColor(229,57,53);doc.rect(0,16,210,2,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(11);doc.setFont('helvetica','bold');
+  doc.text('Gimnasio Medico - Centro Clinico La Serena',mg,11);
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(180,180,180);
+  doc.text('Generado: '+today,pw-mg,11,{align:'right'});
+  y=28;
+  doc.setTextColor(26,37,53);doc.setFontSize(18);doc.setFont('helvetica','bold');
+  doc.text(patient,mg,y);y+=8;
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(100,110,120);
+  doc.text('Periodo: '+fl+' -> '+tl,mg,y);y+=10;
+  doc.setDrawColor(220,225,230);doc.setLineWidth(0.3);doc.line(mg,y,pw-mg,y);y+=8;
+  var cw3=cw/3;
+  var stats=[['Total asistencias',String(entries.length)],['Primera visita',entries.length?fmtDate(entries[0].date):'-'],['Ultima visita',entries.length?fmtDate(entries[entries.length-1].date):'-']];
+  stats.forEach(function(s,i){
+    var x=mg+i*cw3;
+    doc.setFillColor(247,249,251);doc.setDrawColor(220,225,230);doc.setLineWidth(0.3);
+    doc.roundedRect(x,y,cw3-4,16,2,2,'FD');
+    doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(120,130,140);
+    doc.text(s[0].toUpperCase(),x+4,y+5.5);
+    doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(26,37,53);
+    doc.text(s[1],x+4,y+13);
+  });
+  y+=24;
+  doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(26,37,53);
+  doc.text('Detalle de sesiones',mg,y);y+=7;
+  if(entries.length===0){
+    doc.setFont('helvetica','normal');doc.setTextColor(150,150,150);doc.setFontSize(9);
+    doc.text('Sin asistencias en el periodo seleccionado.',mg,y);
+  } else {
+    entries.forEach(function(e){
+      var aLines=doc.splitTextToSize(e.acts||'-',cw-28);
+      var oLines=e.obs?doc.splitTextToSize(e.obs,cw-28):[];
+      var bh=7+5.5*aLines.length+(oLines.length?5.5*oLines.length:0)+8;
+      if(y+bh>275){
+        doc.addPage();
+        doc.setFillColor(26,37,53);doc.rect(0,0,210,18,'F');
+        doc.setFillColor(229,57,53);doc.rect(0,16,210,2,'F');
+        doc.setTextColor(180,180,180);doc.setFontSize(8);doc.setFont('helvetica','normal');
+        doc.text('Gimnasio Medico - '+patient,mg,11);
+        doc.text('Generado: '+today,pw-mg,11,{align:'right'});
+        y=26;
+      }
+      doc.setFillColor(250,252,250);doc.setDrawColor(220,225,230);doc.setLineWidth(0.3);
+      doc.roundedRect(mg,y,cw,bh,2,2,'FD');
+      doc.setFillColor(29,158,117);doc.rect(mg,y,2.5,bh,'F');
+      var iy=y+7;
+      doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(15,110,86);
+      doc.text(fmtDate(e.date)+' . '+e.time,mg+6,iy);iy+=6;
+      doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(120,130,140);
+      doc.text('ACTIVIDADES',mg+6,iy);
+      doc.setFont('helvetica','normal');doc.setTextColor(60,70,80);
+      doc.text(aLines,mg+30,iy);iy+=5.5*aLines.length;
+      if(oLines.length){
+        doc.setFont('helvetica','bold');doc.setTextColor(120,130,140);
+        doc.text('OBSERVACIONES',mg+6,iy);
+        doc.setFont('helvetica','normal');doc.setTextColor(60,70,80);
+        doc.text(oLines,mg+30,iy);
+      }
+      y+=bh+4;
+    });
+  }
+  var np=doc.internal.getNumberOfPages();
+  for(var i=1;i<=np;i++){
+    doc.setPage(i);doc.setFontSize(7);doc.setTextColor(160,160,160);doc.setFont('helvetica','normal');
+    doc.text('Pagina '+i+' de '+np+' - Gimnasio Medico, Centro Clinico La Serena',pw/2,290,{align:'center'});
+  }
+  doc.save('informe_'+patient.replace(/\s+/g,'_').toLowerCase()+'_'+new Date().toISOString().slice(0,10)+'.pdf');
+}
+
+// Init
+loadAllData();
+
+</script>
+</body>
+</html>
