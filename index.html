@@ -6,6 +6,9 @@
 <title>Gimnasio Medico - Control de Asistencia</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
 :root {
   --bg: #f0f2f5;
@@ -159,6 +162,35 @@ body{font-family:var(--font);background:var(--bg);color:var(--text-primary);min-
 .loading-text{color:#fff;font-family:var(--font-display);font-size:14px;letter-spacing:0.08em}
 .toast{position:fixed;bottom:24px;right:24px;background:#1a2535;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-family:var(--font);opacity:0;transition:opacity 0.3s;z-index:500;border-left:3px solid #1D9E75}
 .toast.show{opacity:1}
+
+.loading-overlay{position:fixed;inset:0;background:rgba(26,37,53,0.92);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.loading-spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,0.2);border-top-color:#1D9E75;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:#fff;font-family:var(--font-display);font-size:14px;letter-spacing:0.08em}
+.toast{position:fixed;bottom:24px;right:24px;background:#1a2535;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-family:var(--font);opacity:0;transition:opacity 0.3s;z-index:500;border-left:3px solid #1D9E75}
+.toast.show{opacity:1}
+.footer{text-align:center;padding:24px;margin-top:8px}
+.footer-btn{background:none;border:none;cursor:pointer;font-family:var(--font);font-size:12px;color:var(--text-muted);display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--radius-sm);transition:all 0.15s}
+.footer-btn:hover{color:var(--accent);background:#fef0f0}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:var(--radius);padding:24px;width:90%;max-width:420px}
+.modal-title{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--text-secondary);margin-bottom:18px;line-height:1.5}
+.modal-section{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px}
+.modal-day-list{max-height:220px;overflow-y:auto;border:1px solid var(--card-border);border-radius:var(--radius-sm);margin-bottom:16px}
+.modal-day-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid #f0f2f5;font-size:13px}
+.modal-day-row:last-child{border-bottom:none}
+.modal-day-label{color:var(--text-primary);font-weight:500}
+.modal-day-count{font-size:11px;color:var(--text-muted);margin-left:6px}
+.modal-del-btn{background:none;border:1px solid #f0c0c0;border-radius:4px;cursor:pointer;color:#e53935;font-size:11px;font-weight:600;padding:3px 8px;font-family:var(--font-display);transition:all 0.1s}
+.modal-del-btn:hover{background:#fef0f0}
+.modal-actions{display:flex;gap:8px;margin-top:4px}
+.modal-cancel{flex:1;padding:9px;font-family:var(--font-display);font-size:13px;font-weight:700;background:#fff;color:var(--text-secondary);border:1px solid var(--card-border);border-radius:var(--radius-sm);cursor:pointer}
+.modal-cancel:hover{background:var(--bg)}
+.modal-danger{flex:1;padding:9px;font-family:var(--font-display);font-size:13px;font-weight:700;background:#e53935;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer}
+.modal-danger:hover{background:#b71c1c}
+.empty-modal{text-align:center;padding:20px;font-size:13px;color:var(--text-muted)}
 </style>
 </head>
 <body>
@@ -184,47 +216,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text-primary);min-
 </header>
 
 <nav class="subnav">
-  <button class="subnav-btn active" id="tab-calendar" onclick="switchTab('calendar')">
-    &#128197; Asistencia
-  </button>
-  <button class="subnav-btn" id="tab-search" onclick="switchTab('search')">
-    &#128269; Buscar paciente
-  </button>
+  <button class="subnav-btn active" id="tab-calendar" onclick="switchTab('calendar')">&#128197; Asistencia</button>
+  <button class="subnav-btn" id="tab-search" onclick="switchTab('search')">&#128269; Buscar paciente</button>
 </nav>
 
 <main class="main" id="main"></main>
-
-<style>
-.footer{text-align:center;padding:24px;margin-top:8px}
-.footer-btn{background:none;border:none;cursor:pointer;font-family:var(--font);font-size:12px;color:var(--text-muted);display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--radius-sm);transition:all 0.15s}
-.footer-btn:hover{color:var(--accent);background:#fef0f0}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;align-items:center;justify-content:center}
-.modal-overlay.open{display:flex}
-.modal{background:#fff;border-radius:var(--radius);padding:24px;width:90%;max-width:420px}
-.modal-title{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:6px}
-.modal-sub{font-size:13px;color:var(--text-secondary);margin-bottom:18px;line-height:1.5}
-.modal-section{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px}
-.modal-day-list{max-height:220px;overflow-y:auto;border:1px solid var(--card-border);border-radius:var(--radius-sm);margin-bottom:16px}
-.modal-day-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid #f0f2f5;font-size:13px}
-.modal-day-row:last-child{border-bottom:none}
-.modal-day-label{color:var(--text-primary);font-weight:500}
-.modal-day-count{font-size:11px;color:var(--text-muted);margin-left:6px}
-.modal-del-btn{background:none;border:1px solid #f0c0c0;border-radius:4px;cursor:pointer;color:#e53935;font-size:11px;font-weight:600;padding:3px 8px;font-family:var(--font-display);transition:all 0.1s}
-.modal-del-btn:hover{background:#fef0f0}
-.modal-actions{display:flex;gap:8px;margin-top:4px}
-.modal-cancel{flex:1;padding:9px;font-family:var(--font-display);font-size:13px;font-weight:700;background:#fff;color:var(--text-secondary);border:1px solid var(--card-border);border-radius:var(--radius-sm);cursor:pointer}
-.modal-cancel:hover{background:var(--bg)}
-.modal-danger{flex:1;padding:9px;font-family:var(--font-display);font-size:13px;font-weight:700;background:#e53935;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer}
-.modal-danger:hover{background:#b71c1c}
-.empty-modal{text-align:center;padding:20px;font-size:13px;color:var(--text-muted)}
-</style>
 
 <footer class="footer">
   <button class="footer-btn" onclick="openDataModal()">&#9881; Gestionar registros</button>
 </footer>
 
 <div class="modal-overlay" id="data-modal" onclick="closeModalOutside(event)">
-  <div class="modal" id="modal-box">
+  <div class="modal">
     <div class="modal-title">Gestionar registros</div>
     <div class="modal-sub">Elimina registros de dias especificos o borra todos los datos.</div>
     <div class="modal-section">Eliminar dia especifico</div>
@@ -238,12 +241,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text-primary);min-
   </div>
 </div>
 
-<!-- Firebase SDK -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const firebaseConfig = {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+var firebaseConfig = {
   apiKey: "AIzaSyCcBgBlItDHOZsniGNX_axdbcZBgZoNxjI",
   authDomain: "asistencia-gm.firebaseapp.com",
   projectId: "asistencia-gm",
@@ -251,144 +251,114 @@ const firebaseConfig = {
   messagingSenderId: "611811626340",
   appId: "1:611811626340:web:d68b2a3c57d06ce64e7e71"
 };
+firebase.initializeApp(firebaseConfig);
+var db = firebase.firestore();
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+var DIAS = ['Lun','Mar','Mie','Jue','Vie','Sab','Dom'];
 
-const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const DIAS = ['Lun','Mar','Mie','Jue','Vie','Sab','Dom'];
-
-const state = {
-  tab: 'calendar', view: 'calendar',
-  year: new Date().getFullYear(), month: new Date().getMonth(),
-  selectedDate: null, data: {},
-  form: {name:'', acts:'', obs:''},
-  search: {query:'', from:'', to:'', patient:null}
+var state = {
+  tab:'calendar', view:'calendar',
+  year:new Date().getFullYear(), month:new Date().getMonth(),
+  selectedDate:null, data:{},
+  form:{name:'',acts:'',obs:''},
+  search:{query:'',from:'',to:'',patient:null}
 };
 
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2500);
+}
+function hideLoading(){document.getElementById('loading').style.display='none';}
+function showLoading(msg){
+  var el=document.getElementById('loading');
+  el.style.display='flex';
+  el.querySelector('.loading-text').textContent=msg||'Cargando...';
 }
 
-function hideLoading() { document.getElementById('loading').style.display = 'none'; }
-function showLoading(msg) {
-  const el = document.getElementById('loading');
-  el.style.display = 'flex';
-  el.querySelector('.loading-text').textContent = msg || 'Cargando...';
+function loadAllData(){
+  db.collection('asistencia').get().then(function(snap){
+    snap.forEach(function(d){state.data[d.id]=d.data().patients||[];});
+    hideLoading(); render();
+  }).catch(function(e){
+    console.error('Firebase error:',e);
+    hideLoading(); showToast('Error al conectar: '+e.message); render();
+  });
 }
 
-// Load all data from Firebase on init
-async function loadAllData() {
-  try {
-    const snap = await getDocs(collection(db, 'asistencia'));
-    snap.forEach(d => { state.data[d.id] = d.data().patients || []; });
-    hideLoading();
-    render();
-  } catch(e) {
-    hideLoading();
-    showToast('Error al conectar con Firebase');
-    render();
-  }
+function saveDay(dateKey){
+  return db.collection('asistencia').doc(dateKey).set({patients:state.data[dateKey]||[]})
+    .then(function(){showToast('Guardado');})
+    .catch(function(e){showToast('Error al guardar: '+e.message);});
 }
 
-async function saveDay(dateKey) {
-  try {
-    await setDoc(doc(db, 'asistencia', dateKey), { patients: state.data[dateKey] || [] });
-    showToast('Guardado');
-  } catch(e) { showToast('Error al guardar'); }
+function key(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');}
+function initials(n){return n.trim().split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()||'?';}
+function fmtDate(k){var p=k.split('-').map(Number);return p[2]+' de '+MESES[p[1]-1]+' '+p[0];}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function updateBadge(){
+  var all=new Set();
+  Object.values(state.data).forEach(function(list){list.forEach(function(p){all.add(p.name.trim().toLowerCase());});});
+  var n=all.size;
+  document.getElementById('patient-count').textContent=n+' '+(n===1?'paciente':'pacientes');
 }
 
-async function deleteDay(k) {
-  if (!confirm('Eliminar todos los registros del ' + fmtDate(k) + '?')) return;
-  try {
-    delete state.data[k];
-    await deleteDoc(doc(db, 'asistencia', k));
-    showToast('Dia eliminado');
-    render(); openDataModal();
-  } catch(e) { showToast('Error al eliminar'); }
-}
-window.deleteDay = deleteDay;
-
-async function clearAll() {
-  if (!confirm('Estas seguro? Se eliminaran TODOS los registros permanentemente.')) return;
-  showLoading('Eliminando datos...');
-  try {
-    const snap = await getDocs(collection(db, 'asistencia'));
-    for (const d of snap.docs) await deleteDoc(doc(db, 'asistencia', d.id));
-    state.data = {};
-    hideLoading();
-    showToast('Todos los registros eliminados');
-    render(); closeModal();
-  } catch(e) { hideLoading(); showToast('Error al eliminar'); }
-}
-window.clearAll = clearAll;
-
-function key(y,m,d) { return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
-function initials(n) { return n.trim().split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?'; }
-function fmtDate(k) { const[y,m,d]=k.split('-').map(Number); return d+' de '+MESES[m-1]+' '+y; }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-function updateBadge() {
-  const all = new Set();
-  Object.values(state.data).forEach(list => list.forEach(p => all.add(p.name.trim().toLowerCase())));
-  const n = all.size;
-  document.getElementById('patient-count').textContent = n + ' ' + (n===1?'paciente':'pacientes');
-}
-
-function switchTab(tab) {
-  state.tab = tab;
-  if (tab === 'calendar') state.view = 'calendar';
-  state.search.patient = null;
-  document.getElementById('tab-calendar').classList.toggle('active', tab==='calendar');
-  document.getElementById('tab-search').classList.toggle('active', tab==='search');
+function switchTab(tab){
+  state.tab=tab;
+  if(tab==='calendar') state.view='calendar';
+  state.search.patient=null;
+  document.getElementById('tab-calendar').classList.toggle('active',tab==='calendar');
+  document.getElementById('tab-search').classList.toggle('active',tab==='search');
   render();
 }
-window.switchTab = switchTab;
 
-function getAllPatients() {
-  const map = {};
-  Object.entries(state.data).forEach(([date,list]) => {
-    list.forEach(p => {
-      const n = p.name.trim().toLowerCase();
-      if (!map[n]) map[n] = {name:p.name, count:0};
+function getAllPatients(){
+  var map={};
+  Object.entries(state.data).forEach(function(e){
+    e[1].forEach(function(p){
+      var n=p.name.trim().toLowerCase();
+      if(!map[n]) map[n]={name:p.name,count:0};
       map[n].count++;
     });
   });
-  return Object.values(map).sort((a,b) => a.name.localeCompare(b.name));
+  return Object.values(map).sort(function(a,b){return a.name.localeCompare(b.name);});
 }
 
-function getHistory(name, from, to) {
-  const entries = [];
-  Object.entries(state.data).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([date,list]) => {
-    if (from && date < from) return;
-    if (to && date > to) return;
-    list.forEach(p => { if (p.name.trim().toLowerCase()===name.trim().toLowerCase()) entries.push({date,...p}); });
+function getHistory(name,from,to){
+  var entries=[];
+  Object.entries(state.data).sort(function(a,b){return a[0].localeCompare(b[0]);}).forEach(function(e){
+    var date=e[0],list=e[1];
+    if(from&&date<from) return;
+    if(to&&date>to) return;
+    list.forEach(function(p){
+      if(p.name.trim().toLowerCase()===name.trim().toLowerCase()) entries.push(Object.assign({date:date},p));
+    });
   });
   return entries;
 }
 
-function render() {
-  const el = document.getElementById('main');
-  el.innerHTML = state.tab==='calendar'
-    ? (state.view==='calendar' ? renderCal() : renderDay())
-    : renderSearch();
+function render(){
+  var el=document.getElementById('main');
+  el.innerHTML=state.tab==='calendar'
+    ?(state.view==='calendar'?renderCal():renderDay())
+    :renderSearch();
   updateBadge();
 }
 
-function renderCal() {
-  const y=state.year, m=state.month;
-  const first=new Date(y,m,1).getDay();
-  const offset=first===0?6:first-1;
-  const days=new Date(y,m+1,0).getDate();
-  const today=new Date();
-  let cells='';
-  for(let i=0;i<offset;i++) cells+='<div class="cal-cell empty"></div>';
-  for(let d=1;d<=days;d++){
-    const k=key(y,m,d);
-    const isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
-    const hasDot=state.data[k]&&state.data[k].length>0;
+function renderCal(){
+  var y=state.year,m=state.month;
+  var first=new Date(y,m,1).getDay();
+  var offset=first===0?6:first-1;
+  var days=new Date(y,m+1,0).getDate();
+  var today=new Date();
+  var cells='';
+  for(var i=0;i<offset;i++) cells+='<div class="cal-cell empty"></div>';
+  for(var d=1;d<=days;d++){
+    var k=key(y,m,d);
+    var isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
+    var hasDot=state.data[k]&&state.data[k].length>0;
     cells+='<div class="cal-cell'+(isToday?' today':'')+(hasDot?' has-data':'')+'" onclick="openDay(''+k+'')">'
       +'<span class="cal-num">'+d+'</span>'+(hasDot?'<span class="cal-dot"></span>':'')+'</div>';
   }
@@ -399,30 +369,30 @@ function renderCal() {
     +'<button class="cal-btn" onclick="changeMonth(-1)">&#8592;</button>'
     +'<button class="cal-btn" onclick="changeMonth(1)">&#8594;</button>'
     +'</div></div>'
-    +'<div class="cal-grid">'+DIAS.map(d=>'<div class="cal-dayname">'+d+'</div>').join('')+cells+'</div>'
+    +'<div class="cal-grid">'+DIAS.map(function(d){return '<div class="cal-dayname">'+d+'</div>';}).join('')+cells+'</div>'
     +'<p class="cal-hint">&#9679; Dias con asistencia registrada &nbsp;|&nbsp; Pincha un dia para agregar pacientes</p>'
     +'</div>';
 }
 
-function renderDay() {
-  const k=state.selectedDate;
-  const[y,m,d]=k.split('-').map(Number);
-  const patients=state.data[k]||[];
-  const cards=patients.length===0
+function renderDay(){
+  var k=state.selectedDate;
+  var p=k.split('-').map(Number),y=p[0],m=p[1],d=p[2];
+  var patients=state.data[k]||[];
+  var cards=patients.length===0
     ?'<div class="empty-state"><span class="empty-icon">&#128101;</span><p class="empty-text">Sin asistentes registrados para este dia</p></div>'
-    :patients.map((p,i)=>
-      '<div class="p-card">'
-      +'<div class="p-card-top">'
-      +'<div class="p-avatar">'+initials(p.name)+'</div>'
-      +'<span class="p-name">'+esc(p.name)+'</span>'
-      +'<span class="p-time">'+p.time+'</span>'
-      +'<button class="del-btn" onclick="deletePatient('+i+')" title="Eliminar">&#10005;</button>'
-      +'</div>'
-      +'<div class="p-detail">'
-      +'<div class="p-detail-row"><span class="p-lbl">Actividades</span><span class="p-val">'+(esc(p.acts)||'-')+'</span></div>'
-      +(p.obs?'<div class="p-detail-row"><span class="p-lbl">Observaciones</span><span class="p-val">'+esc(p.obs)+'</span></div>':'')
-      +'</div></div>'
-    ).join('');
+    :patients.map(function(p,i){
+      return '<div class="p-card">'
+        +'<div class="p-card-top">'
+        +'<div class="p-avatar">'+initials(p.name)+'</div>'
+        +'<span class="p-name">'+esc(p.name)+'</span>'
+        +'<span class="p-time">'+p.time+'</span>'
+        +'<button class="del-btn" onclick="deletePatient('+i+')" title="Eliminar">&#10005;</button>'
+        +'</div>'
+        +'<div class="p-detail">'
+        +'<div class="p-detail-row"><span class="p-lbl">Actividades</span><span class="p-val">'+(esc(p.acts)||'-')+'</span></div>'
+        +(p.obs?'<div class="p-detail-row"><span class="p-lbl">Observaciones</span><span class="p-val">'+esc(p.obs)+'</span></div>':'')
+        +'</div></div>';
+    }).join('');
   return '<button class="back-btn" onclick="goBack()">&#8592; Volver al calendario</button>'
     +'<div class="day-header">'
     +'<span class="day-title">'+d+' de '+MESES[m-1]+' '+y+'</span>'
@@ -441,25 +411,25 @@ function renderDay() {
     +'</div>';
 }
 
-function renderSearch() {
-  const q=state.search.query.toLowerCase().trim();
-  const all=getAllPatients();
-  const filtered=q?all.filter(p=>p.name.toLowerCase().includes(q)):all;
-  const patient=state.search.patient;
-  let reportHtml='';
+function renderSearch(){
+  var q=state.search.query.toLowerCase().trim();
+  var all=getAllPatients();
+  var filtered=q?all.filter(function(p){return p.name.toLowerCase().indexOf(q)>-1;}):all;
+  var patient=state.search.patient;
+  var reportHtml='';
   if(patient){
-    const entries=getHistory(patient,state.search.from,state.search.to);
-    const fl=state.search.from?fmtDate(state.search.from):'inicio del registro';
-    const tl=state.search.to?fmtDate(state.search.to):'hoy';
-    const eHtml=entries.length===0
+    var entries=getHistory(patient,state.search.from,state.search.to);
+    var fl=state.search.from?fmtDate(state.search.from):'inicio del registro';
+    var tl=state.search.to?fmtDate(state.search.to):'hoy';
+    var eHtml=entries.length===0
       ?'<div class="empty-state"><span class="empty-icon">&#128197;</span><p class="empty-text">Sin asistencias en el periodo seleccionado</p></div>'
-      :entries.map(e=>
-        '<div class="r-entry">'
-        +'<div class="r-entry-date">&#128197; '+fmtDate(e.date)+' &nbsp;&middot;&nbsp; '+e.time+'</div>'
-        +'<div class="r-row"><span class="r-lbl">Actividades</span><span>'+(esc(e.acts)||'-')+'</span></div>'
-        +(e.obs?'<div class="r-row"><span class="r-lbl">Observaciones</span><span>'+esc(e.obs)+'</span></div>':'')
-        +'</div>'
-      ).join('');
+      :entries.map(function(e){
+        return '<div class="r-entry">'
+          +'<div class="r-entry-date">&#128197; '+fmtDate(e.date)+' &nbsp;&middot;&nbsp; '+e.time+'</div>'
+          +'<div class="r-row"><span class="r-lbl">Actividades</span><span>'+(esc(e.acts)||'-')+'</span></div>'
+          +(e.obs?'<div class="r-row"><span class="r-lbl">Observaciones</span><span>'+esc(e.obs)+'</span></div>':'')
+          +'</div>';
+      }).join('');
     reportHtml='<div class="report-top">'
       +'<div class="report-av">'+initials(patient)+'</div>'
       +'<div style="flex:1"><div class="report-name">'+esc(patient)+'</div>'
@@ -470,22 +440,22 @@ function renderSearch() {
       +'<div class="stat-box"><div class="stat-lbl">Ultima visita</div><div class="stat-val" style="font-size:13px">'+(entries.length?fmtDate(entries[entries.length-1].date):'-')+'</div></div>'
       +'</div>'+eHtml;
   }
-  let listHtml='';
+  var listHtml='';
   if(!patient){
     if(filtered.length>0){
-      listHtml='<div class="sug-list">'+filtered.map(p=>
-        '<div class="sug-item" onclick="selectPatient(''+esc(p.name)+'')">'
-        +'<div class="sug-av">'+initials(p.name)+'</div>'
-        +'<div><div class="sug-name">'+esc(p.name)+'</div><div class="sug-count">'+p.count+' '+(p.count===1?'asistencia':'asistencias')+'</div></div>'
-        +'<span class="sug-arrow">&#8250;</span></div>'
-      ).join('')+'</div>';
+      listHtml='<div class="sug-list">'+filtered.map(function(p){
+        return '<div class="sug-item" onclick="selectPatient(''+esc(p.name)+'')">'
+          +'<div class="sug-av">'+initials(p.name)+'</div>'
+          +'<div><div class="sug-name">'+esc(p.name)+'</div><div class="sug-count">'+p.count+' '+(p.count===1?'asistencia':'asistencias')+'</div></div>'
+          +'<span class="sug-arrow">&#8250;</span></div>';
+      }).join('')+'</div>';
     } else if(q){
-      listHtml='<div class="empty-state"><span class="empty-icon">&#128269;</span><p class="empty-text">No se encontro ningun paciente con ese nombre</p></div>';
+      listHtml='<div class="empty-state"><span class="empty-icon">&#128269;</span><p class="empty-text">No se encontro ningun paciente</p></div>';
     } else if(all.length===0){
       listHtml='<div class="empty-state"><span class="empty-icon">&#128101;</span><p class="empty-text">Aun no hay pacientes registrados</p></div>';
     }
   }
-  const html='<div class="section-label">Buscar paciente</div>'
+  var html='<div class="section-label">Buscar paciente</div>'
     +(patient?'<button class="back-btn" onclick="backSearch()">&#8592; Volver al buscador</button>':'')
     +'<div class="card">'
     +'<div class="search-wrap"><span class="search-ico">&#128269;</span>'
@@ -515,18 +485,18 @@ function renderSearch() {
 
 function onSearchInput(v){
   state.search.query=v; state.search.patient=null;
-  const q=v.toLowerCase().trim();
-  const all=getAllPatients();
-  const filtered=q?all.filter(p=>p.name.toLowerCase().includes(q)):all;
-  const cont=document.getElementById('sug-container');
-  if(!cont)return;
+  var q=v.toLowerCase().trim();
+  var all=getAllPatients();
+  var filtered=q?all.filter(function(p){return p.name.toLowerCase().indexOf(q)>-1;}):all;
+  var cont=document.getElementById('sug-container');
+  if(!cont) return;
   if(filtered.length>0){
-    cont.innerHTML='<div class="sug-list">'+filtered.map(p=>
-      '<div class="sug-item" onclick="selectPatient(''+esc(p.name)+'')">'
-      +'<div class="sug-av">'+initials(p.name)+'</div>'
-      +'<div><div class="sug-name">'+esc(p.name)+'</div><div class="sug-count">'+p.count+' '+(p.count===1?'asistencia':'asistencias')+'</div></div>'
-      +'<span class="sug-arrow">&#8250;</span></div>'
-    ).join('')+'</div>';
+    cont.innerHTML='<div class="sug-list">'+filtered.map(function(p){
+      return '<div class="sug-item" onclick="selectPatient(''+esc(p.name)+'')">'
+        +'<div class="sug-av">'+initials(p.name)+'</div>'
+        +'<div><div class="sug-name">'+esc(p.name)+'</div><div class="sug-count">'+p.count+' '+(p.count===1?'asistencia':'asistencias')+'</div></div>'
+        +'<span class="sug-arrow">&#8250;</span></div>';
+    }).join('')+'</div>';
   } else if(q){
     cont.innerHTML='<div class="empty-state"><span class="empty-icon">&#128269;</span><p class="empty-text">No se encontro ningun paciente</p></div>';
   } else {
@@ -540,80 +510,86 @@ function changeMonth(dir){
   else if(state.month>11){state.month=0;state.year++;}
   render();
 }
-window.changeMonth=changeMonth;
+function openDay(k){state.selectedDate=k;state.view='day';state.form={name:'',acts:'',obs:''};render();}
+function goBack(){state.view='calendar';render();}
+function backSearch(){state.search.patient=null;state.search.query='';render();}
+function selectPatient(name){state.search.patient=name;state.search.query=name;render();}
+function applyFilter(){state.search.from=document.getElementById('f-from').value;state.search.to=document.getElementById('f-to').value;render();}
 
-function openDay(k){ state.selectedDate=k; state.view='day'; state.form={name:'',acts:'',obs:''}; render(); }
-window.openDay=openDay;
-function goBack(){ state.view='calendar'; render(); }
-window.goBack=goBack;
-function backSearch(){ state.search.patient=null; state.search.query=''; render(); }
-window.backSearch=backSearch;
-function selectPatient(name){ state.search.patient=name; state.search.query=name; render(); }
-window.selectPatient=selectPatient;
-function applyFilter(){ state.search.from=document.getElementById('f-from').value; state.search.to=document.getElementById('f-to').value; render(); }
-window.applyFilter=applyFilter;
-
-async function deletePatient(i){
+function deletePatient(i){
   if(!confirm('Eliminar este registro?')) return;
   state.data[state.selectedDate].splice(i,1);
-  await saveDay(state.selectedDate);
+  saveDay(state.selectedDate);
   render();
 }
-window.deletePatient=deletePatient;
 
-async function addPatient(){
-  const name=document.getElementById('f-name').value.trim();
+function addPatient(){
+  var name=document.getElementById('f-name').value.trim();
   if(!name){document.getElementById('f-name').focus();return;}
   if(!state.data[state.selectedDate]) state.data[state.selectedDate]=[];
-  const now=new Date();
+  var now=new Date();
   state.data[state.selectedDate].push({
-    name,
+    name:name,
     acts:document.getElementById('f-acts').value.trim(),
     obs:document.getElementById('f-obs').value.trim(),
     time:now.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})
   });
   state.form={name:'',acts:'',obs:''};
-  await saveDay(state.selectedDate);
+  saveDay(state.selectedDate);
   render();
 }
-window.addPatient=addPatient;
 
 function openDataModal(){
-  const list=document.getElementById('modal-day-list');
-  const days=Object.entries(state.data)
+  var list=document.getElementById('modal-day-list');
+  var days=Object.entries(state.data)
     .filter(function(e){return e[1]&&e[1].length>0;})
     .sort(function(a,b){return b[0].localeCompare(a[0]);});
   if(days.length===0){
     list.innerHTML='<div class="empty-modal">No hay registros guardados</div>';
   } else {
     list.innerHTML=days.map(function(e){
-      var k=e[0],v=e[1];
       return '<div class="modal-day-row">'
-        +'<span><span class="modal-day-label">'+fmtDate(k)+'</span>'
-        +'<span class="modal-day-count">'+v.length+' '+(v.length===1?'paciente':'pacientes')+'</span></span>'
-        +'<button class="modal-del-btn" onclick="deleteDay(\"'+k+'\")">Eliminar</button>'
+        +'<span><span class="modal-day-label">'+fmtDate(e[0])+'</span>'
+        +'<span class="modal-day-count">'+e[1].length+' '+(e[1].length===1?'paciente':'pacientes')+'</span></span>'
+        +'<button class="modal-del-btn" onclick="deleteDay(''+e[0]+'')">Eliminar</button>'
         +'</div>';
     }).join('');
   }
   document.getElementById('data-modal').classList.add('open');
 }
-window.openDataModal=openDataModal;
 function closeModal(){document.getElementById('data-modal').classList.remove('open');}
-window.closeModal=closeModal;
 function closeModalOutside(e){if(e.target===document.getElementById('data-modal'))closeModal();}
-window.closeModalOutside=closeModalOutside;
+
+function deleteDay(k){
+  if(!confirm('Eliminar todos los registros del '+fmtDate(k)+'?')) return;
+  delete state.data[k];
+  db.collection('asistencia').doc(k).delete()
+    .then(function(){showToast('Dia eliminado');render();openDataModal();})
+    .catch(function(e){showToast('Error: '+e.message);});
+}
+
+function clearAll(){
+  if(!confirm('Estas seguro? Se eliminaran TODOS los registros permanentemente.')) return;
+  showLoading('Eliminando datos...');
+  var keys=Object.keys(state.data);
+  var promises=keys.map(function(k){return db.collection('asistencia').doc(k).delete();});
+  Promise.all(promises).then(function(){
+    state.data={};
+    hideLoading();showToast('Todos los registros eliminados');render();closeModal();
+  }).catch(function(e){hideLoading();showToast('Error: '+e.message);});
+}
 
 function exportPDF(){
-  if(typeof window.jspdf==='undefined'){alert('Cargando libreria PDF, espera un momento...');return;}
-  const{jsPDF}=window.jspdf;
-  const doc=new jsPDF({unit:'mm',format:'a4'});
-  const patient=state.search.patient;
-  const entries=getHistory(patient,state.search.from,state.search.to);
-  const fl=state.search.from?fmtDate(state.search.from):'inicio del registro';
-  const tl=state.search.to?fmtDate(state.search.to):'hoy';
-  const today=new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
-  const pw=210,mg=20,cw=pw-mg*2;
-  let y=0;
+  if(typeof window.jspdf==='undefined'){alert('Cargando PDF, espera un momento...');return;}
+  var jsPDF=window.jspdf.jsPDF;
+  var doc=new jsPDF({unit:'mm',format:'a4'});
+  var patient=state.search.patient;
+  var entries=getHistory(patient,state.search.from,state.search.to);
+  var fl=state.search.from?fmtDate(state.search.from):'inicio del registro';
+  var tl=state.search.to?fmtDate(state.search.to):'hoy';
+  var today=new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
+  var pw=210,mg=20,cw=pw-mg*2;
+  var y=0;
   doc.setFillColor(26,37,53);doc.rect(0,0,210,18,'F');
   doc.setFillColor(229,57,53);doc.rect(0,16,210,2,'F');
   doc.setTextColor(255,255,255);doc.setFontSize(11);doc.setFont('helvetica','bold');
@@ -626,10 +602,10 @@ function exportPDF(){
   doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(100,110,120);
   doc.text('Periodo: '+fl+' -> '+tl,mg,y);y+=10;
   doc.setDrawColor(220,225,230);doc.setLineWidth(0.3);doc.line(mg,y,pw-mg,y);y+=8;
-  const cw3=cw/3;
-  const stats=[['Total asistencias',String(entries.length)],['Primera visita',entries.length?fmtDate(entries[0].date):'-'],['Ultima visita',entries.length?fmtDate(entries[entries.length-1].date):'-']];
+  var cw3=cw/3;
+  var stats=[['Total asistencias',String(entries.length)],['Primera visita',entries.length?fmtDate(entries[0].date):'-'],['Ultima visita',entries.length?fmtDate(entries[entries.length-1].date):'-']];
   stats.forEach(function(s,i){
-    const x=mg+i*cw3;
+    var x=mg+i*cw3;
     doc.setFillColor(247,249,251);doc.setDrawColor(220,225,230);doc.setLineWidth(0.3);
     doc.roundedRect(x,y,cw3-4,16,2,2,'FD');
     doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(120,130,140);
@@ -643,11 +619,11 @@ function exportPDF(){
   if(entries.length===0){
     doc.setFont('helvetica','normal');doc.setTextColor(150,150,150);doc.setFontSize(9);
     doc.text('Sin asistencias en el periodo seleccionado.',mg,y);
-  }else{
+  } else {
     entries.forEach(function(e){
-      const aLines=doc.splitTextToSize(e.acts||'-',cw-28);
-      const oLines=e.obs?doc.splitTextToSize(e.obs,cw-28):[];
-      const bh=7+5.5*aLines.length+(oLines.length?5.5*oLines.length:0)+8;
+      var aLines=doc.splitTextToSize(e.acts||'-',cw-28);
+      var oLines=e.obs?doc.splitTextToSize(e.obs,cw-28):[];
+      var bh=7+5.5*aLines.length+(oLines.length?5.5*oLines.length:0)+8;
       if(y+bh>275){
         doc.addPage();
         doc.setFillColor(26,37,53);doc.rect(0,0,210,18,'F');
@@ -660,7 +636,7 @@ function exportPDF(){
       doc.setFillColor(250,252,250);doc.setDrawColor(220,225,230);doc.setLineWidth(0.3);
       doc.roundedRect(mg,y,cw,bh,2,2,'FD');
       doc.setFillColor(29,158,117);doc.rect(mg,y,2.5,bh,'F');
-      let iy=y+7;
+      var iy=y+7;
       doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(15,110,86);
       doc.text(fmtDate(e.date)+' . '+e.time,mg+6,iy);iy+=6;
       doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(120,130,140);
@@ -676,18 +652,16 @@ function exportPDF(){
       y+=bh+4;
     });
   }
-  const np=doc.internal.getNumberOfPages();
-  for(let i=1;i<=np;i++){
+  var np=doc.internal.getNumberOfPages();
+  for(var i=1;i<=np;i++){
     doc.setPage(i);doc.setFontSize(7);doc.setTextColor(160,160,160);doc.setFont('helvetica','normal');
     doc.text('Pagina '+i+' de '+np+' - Gimnasio Medico, Centro Clinico La Serena',pw/2,290,{align:'center'});
   }
   doc.save('informe_'+patient.replace(/\s+/g,'_').toLowerCase()+'_'+new Date().toISOString().slice(0,10)+'.pdf');
 }
-window.exportPDF=exportPDF;
 
 // Init
 loadAllData();
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </body>
 </html>
