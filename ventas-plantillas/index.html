@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Ventas de Plantillas</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f0f2f5;min-height:100vh}
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f0f2f5}
+.login-card{background:#fff;border-radius:12px;padding:36px 32px;width:100%;max-width:380px;box-shadow:0 2px 12px rgba(0,0,0,0.08)}
+.login-logo{width:48px;height:48px;background:#e63946;border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.login-logo svg{width:28px;height:28px;fill:#fff}
+.login-title{text-align:center;font-size:18px;font-weight:600;color:#1a2332;margin-bottom:4px}
+.login-sub{text-align:center;font-size:13px;color:#8a9bb0;margin-bottom:24px}
+.login-card label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
+.login-card input{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;margin-bottom:14px;outline:none;transition:border .2s}
+.login-card input:focus{border-color:#2e75b6}
+.login-btn{width:100%;padding:11px;background:#1a2332;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s}
+.login-btn:hover{background:#2e75b6}
+.login-error{color:#e63946;font-size:12px;text-align:center;margin-top:8px;min-height:18px}
+#app{display:none}
+.navbar{background:#1a2332;padding:0 20px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-left{display:flex;align-items:center;gap:10px}
+.nav-logo{width:36px;height:36px;background:#e63946;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.nav-logo svg{width:20px;height:20px;fill:#fff}
+.nav-title{color:#fff;font-size:13px;font-weight:600}
+.nav-sub{color:#8a9bb0;font-size:10px}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-badge{background:#e63946;color:#fff;font-size:11px;font-weight:600;padding:4px 11px;border-radius:20px}
+.nav-user{color:#8a9bb0;font-size:11px}
+.logout-btn{background:transparent;border:1px solid #8a9bb0;color:#8a9bb0;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer}
+.logout-btn:hover{border-color:#fff;color:#fff}
+.subnav{background:#fff;border-bottom:1px solid #e8eaf0;padding:0 20px;height:34px;display:flex;align-items:center;gap:6px}
+.subnav-line{width:26px;height:2px;background:#e63946;border-radius:1px}
+.subnav-label{font-size:10px;font-weight:700;color:#8a9bb0;letter-spacing:.08em;text-transform:uppercase}
+.main{padding:20px;max-width:1100px;margin:0 auto}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.cal-title{font-size:24px;font-weight:600;color:#1a2332}
+.cal-nav{display:flex;gap:5px}
+.cbtn{width:34px;height:34px;border:1px solid #ddd;border-radius:7px;background:#fff;color:#666;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:background .15s}
+.cbtn:hover{background:#f0f2f5}
+.cal-grid{background:#fff;border-radius:12px;border:1px solid #e8eaf0;overflow:hidden}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid #e8eaf0}
+.wd{padding:8px 0;text-align:center;font-size:10px;font-weight:700;color:#8a9bb0;letter-spacing:.06em;text-transform:uppercase}
+.wd.we{color:#e63946}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr)}
+.cday{min-height:72px;border-right:1px solid #e8eaf0;border-bottom:1px solid #e8eaf0;padding:8px 10px;cursor:pointer;position:relative;transition:background .12s}
+.cday:nth-child(7n){border-right:none}
+.cday:hover{background:#f8f9fb}
+.cday.empty{background:#f8f9fb;cursor:default;pointer-events:none}
+.cday.today{border:2px solid #e63946}
+.cday.today .dnum{color:#e63946;font-weight:700}
+.cday.hasdata .dot{display:block}
+.dnum{font-size:15px;color:#1a2332}
+.dot{display:none;width:6px;height:6px;background:#1d9e75;border-radius:50%;position:absolute;bottom:8px;left:50%;transform:translateX(-50%)}
+.wk-label{font-size:9px;color:#bbb;position:absolute;top:6px;right:7px}
+.month-section{margin-top:20px}
+.month-title{font-size:13px;font-weight:700;color:#8a9bb0;margin-bottom:10px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #e8eaf0;padding-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+.month-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:8px;margin-bottom:12px}
+.mcard{background:#f8f9fb;border-radius:8px;padding:10px 12px}
+.mcard .ml{font-size:10px;color:#8a9bb0;margin-bottom:4px}
+.mcard .mv{font-size:16px;font-weight:700;color:#1a2332}
+.mcard.accent{background:#1a2332}
+.mcard.accent .ml{color:#8a9bb0}
+.mcard.accent .mv{color:#5dcaa5}
+.wtbl-wrap{background:#fff;border:1px solid #e8eaf0;border-radius:11px;overflow:auto;margin-bottom:10px}
+.wtbl{width:100%;border-collapse:collapse;min-width:380px}
+.wtbl th{font-size:9px;color:#8a9bb0;font-weight:700;padding:7px 10px;border-bottom:1px solid #e8eaf0;background:#f8f9fb;text-transform:uppercase;letter-spacing:.05em;text-align:right}
+.wtbl th:first-child{text-align:left}
+.wtbl td{font-size:11px;padding:7px 10px;border-bottom:1px solid #e8eaf0;text-align:right;color:#1a2332}
+.wtbl td:first-child{text-align:left;font-weight:600;color:#8a9bb0}
+.wtbl tbody tr:hover td{background:#f8f9fb}
+.wtbl tfoot td{background:#f8f9fb;font-weight:600;border-top:1px solid #e8eaf0;border-bottom:none}
+.wtbl tfoot tr.grand td{background:#1a2332;color:#fff;font-weight:700}
+.wtbl tfoot tr.grand td:first-child{color:#9fe1cb}
+#view-day{display:none}
+.back{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#8a9bb0;cursor:pointer;margin-bottom:14px;padding:4px 0;background:none;border:none}
+.back:hover{color:#1a2332}
+.dv-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.dv-title{font-size:20px;font-weight:700;color:#1a2332}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{background:#f8f9fb;border:1px solid #e8eaf0;border-radius:7px;padding:5px 11px;font-size:11px;color:#8a9bb0}
+.pill b{color:#1a2332;font-weight:700}
+.save-status{font-size:11px;color:#1d9e75;display:flex;align-items:center;gap:4px}
+.save-status.saving{color:#f59e0b}
+.lab-card{background:#fff;border:1px solid #e8eaf0;border-radius:11px;margin-bottom:10px;overflow:hidden}
+.lab-hd{background:#1a2332;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.lab-name{color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;gap:7px}
+.lab-icon{width:26px;height:26px;background:rgba(255,255,255,.1);border-radius:5px;display:flex;align-items:center;justify-content:center;color:#7ec8e3;font-size:14px}
+.lab-tots{display:flex;gap:12px;flex-wrap:wrap}
+.lt-item .ltl{font-size:9px;color:#8a9bb0;text-transform:uppercase;letter-spacing:.06em}
+.lt-item .ltv{font-size:12px;font-weight:700;color:#fff;text-align:right}
+.dtbl{width:100%;border-collapse:collapse;table-layout:fixed}
+.dtbl th{font-size:10px;color:#8a9bb0;font-weight:700;text-align:left;padding:6px 10px;border-bottom:1px solid #e8eaf0;background:#f8f9fb;text-transform:uppercase;letter-spacing:.05em}
+.dtbl td{font-size:12px;color:#1a2332;padding:7px 10px;border-bottom:1px solid #e8eaf0}
+.dtbl tr:last-child td{border-bottom:none}
+.dtbl tr:hover td{background:#f8f9fb}
+input.ti{background:transparent;border:none;font-size:12px;color:#1a2332;width:100%;font-family:Arial,sans-serif;outline:none;padding:0;-moz-appearance:textfield;appearance:textfield}
+input.ti::-webkit-outer-spin-button,input.ti::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input.ti:focus{background:#f0f2f5;border-radius:3px;padding:1px 4px}
+.iva-auto{color:#1d9e75;font-size:10px;font-style:italic;margin-left:2px}
+.add-btn{display:flex;align-items:center;gap:5px;padding:7px 14px;font-size:11px;color:#8a9bb0;cursor:pointer;background:none;border:none;border-top:1px solid #e8eaf0;width:100%;text-align:left}
+.add-btn:hover{background:#f8f9fb;color:#1a2332}
+.total-bar{background:#1a2332;border-radius:11px;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;margin-top:4px;flex-wrap:wrap;gap:8px}
+.tb-label{color:#8a9bb0;font-size:12px;display:flex;align-items:center;gap:6px}
+.tb-vals{display:flex;gap:16px;flex-wrap:wrap}
+.tb-item .tbl2{font-size:9px;color:#8a9bb0;text-transform:uppercase;letter-spacing:.06em}
+.tb-item .tbv{font-size:15px;font-weight:700;color:#fff}
+.tbv.green{color:#5dcaa5}
+.loading{text-align:center;padding:40px;color:#8a9bb0;font-size:14px}
+@media(max-width:600px){
+  .main{padding:12px}
+  .dv-header{flex-direction:column;align-items:flex-start}
+  .lab-hd{flex-direction:column;align-items:flex-start}
+  .total-bar{flex-direction:column}
+  .cal-title{font-size:18px}
+}
+</style>
+</head>
+<body>
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo"><svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/></svg></div>
+    <div class="login-title">Control de Plantillas</div>
+    <div class="login-sub">Ventas por laboratorio</div>
+    <label>Correo electrónico</label>
+    <input type="email" id="email-input" placeholder="correo@ejemplo.com">
+    <label>Contraseña</label>
+    <input type="password" id="pass-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Ingresar</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+<div id="app">
+  <nav class="navbar">
+    <div class="nav-left">
+      <div class="nav-logo"><svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/></svg></div>
+      <div><div class="nav-title">Control de Plantillas</div><div class="nav-sub">Ventas por laboratorio</div></div>
+    </div>
+    <div class="nav-right">
+      <span class="nav-badge" id="total-badge">0 registros</span>
+      <span class="nav-user" id="nav-user"></span>
+      <button class="logout-btn" onclick="doLogout()">Salir</button>
+    </div>
+  </nav>
+  <div class="subnav"><div class="subnav-line"></div><span class="subnav-label">Control de ventas</span></div>
+  <div class="main">
+    <div id="view-cal">
+      <div class="cal-header">
+        <div class="cal-title" id="cal-title"></div>
+        <div class="cal-nav">
+          <button class="cbtn" onclick="chMonth(-1)">&#8592;</button>
+          <button class="cbtn" onclick="chMonth(1)">&#8594;</button>
+        </div>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-weekdays">
+          <div class="wd">lun</div><div class="wd">mar</div><div class="wd">mié</div>
+          <div class="wd">jue</div><div class="wd">vie</div>
+          <div class="wd we">sáb</div><div class="wd we">dom</div>
+        </div>
+        <div class="cal-days" id="cal-days"></div>
+      </div>
+      <div class="month-section" id="month-summary-section"></div>
+    </div>
+    <div id="view-day">
+      <button class="back" onclick="showCal()">&#8592; Volver al calendario</button>
+      <div class="dv-header">
+        <div class="dv-title" id="dv-title"></div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="pills">
+            <div class="pill">Neto: <b id="s-neto">$0</b></div>
+            <div class="pill">IVA: <b id="s-iva">$0</b></div>
+            <div class="pill">Total: <b id="s-tot">$0</b></div>
+          </div>
+          <div class="save-status" id="save-status">&#10003; Guardado</div>
+        </div>
+      </div>
+      <div id="labs-cont"></div>
+      <div class="total-bar">
+        <div class="tb-label">&#9670; Total del día</div>
+        <div class="tb-vals">
+          <div class="tb-item"><div class="tbl2">Cantidad</div><div class="tbv" id="tb-qty">0</div></div>
+          <div class="tb-item"><div class="tbl2">Neto</div><div class="tbv" id="tb-neto">$0</div></div>
+          <div class="tb-item"><div class="tbl2">IVA 19%</div><div class="tbv" id="tb-iva">$0</div></div>
+          <div class="tb-item"><div class="tbl2">Total</div><div class="tbv green" id="tb-total">$0</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const firebaseConfig={apiKey:"AIzaSyCcBgBlItDHOZsniGNX_axdbcZBgZoNxjI",authDomain:"asistencia-gm.firebaseapp.com",projectId:"asistencia-gm",storageBucket:"asistencia-gm.firebasestorage.app",messagingSenderId:"611811626340",appId:"1:611811626340:web:d68b2a3c57d06ce64e7e71"};
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+const LABS=["Lab. Copiapó","Lab. La Serena","Lab. Coquimbo","Lab. Talus","Lab. Viña del Mar","Lab. Curicó","Lab. Concepción","Lab. Osorno","Lab. Punta Arenas"];
+const MESES=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+let cY=2026,cM=5,currentKey=null,saveTimer=null;
+const CACHE={};
+function dk(y,m,d){return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
+function fmt(n){return '$'+(Math.round(n)||0).toLocaleString('es-CL')}
+function fmtN(n){return(Math.round(n)||0).toLocaleString('es-CL')}
+function dim(y,m){return new Date(y,m+1,0).getDate()}
+function fd(y,m){let d=new Date(y,m,1).getDay();return d===0?6:d-1}
+function weekNum(d){return Math.ceil((d+fd(cY,cM))/7)}
+function autoIva(q,v){return Math.round((+q||0)*(+v||0)*0.19)}
+function emptyDay(){return LABS.map(l=>({name:l,lines:[{n:'',q:'',s:'',v:'',iva_manual:'',iva_edited:false}]}))}
+window.doLogin=async function(){const email=document.getElementById('email-input').value.trim();const pass=document.getElementById('pass-input').value;const errEl=document.getElementById('login-error');errEl.textContent='';try{await signInWithEmailAndPassword(auth,email,pass);}catch(e){errEl.textContent='Correo o contraseña incorrectos';}}
+window.doLogout=async function(){await signOut(auth);}
+onAuthStateChanged(auth,user=>{if(user){document.getElementById('login-screen').style.display='none';document.getElementById('app').style.display='block';document.getElementById('nav-user').textContent=user.email;renderCal();}else{document.getElementById('login-screen').style.display='flex';document.getElementById('app').style.display='none';}});
+async function loadDay(key_){if(CACHE[key_])return CACHE[key_];try{const snap=await getDoc(doc(db,'ventas_plantillas',key_));if(snap.exists()){CACHE[key_]=snap.data().labs;}else{CACHE[key_]=emptyDay();}}catch(e){CACHE[key_]=emptyDay();}return CACHE[key_];}
+function scheduleSave(key_){setSaveStatus('saving');if(saveTimer)clearTimeout(saveTimer);saveTimer=setTimeout(()=>saveDay(key_),1200);}
+async function saveDay(key_){try{await setDoc(doc(db,'ventas_plantillas',key_),{labs:CACHE[key_],updatedAt:new Date().toISOString()});setSaveStatus('saved');renderCal();}catch(e){setSaveStatus('error');}}
+function setSaveStatus(s){const el=document.getElementById('save-status');if(!el)return;if(s==='saving'){el.textContent='Guardando...';el.className='save-status saving';}else if(s==='saved'){el.textContent='✓ Guardado';el.className='save-status';}else{el.textContent='Error al guardar';el.className='save-status';el.style.color='#e63946';}}
+function renderCal(){document.getElementById('cal-title').textContent=MESES[cM]+' '+cY;const grid=document.getElementById('cal-days');grid.innerHTML='';const f=fd(cY,cM),tot=dim(cY,cM);const today=new Date();for(let i=0;i<f;i++){const e=document.createElement('div');e.className='cday empty';grid.appendChild(e);}for(let d=1;d<=tot;d++){const el=document.createElement('div');el.className='cday';if(today.getFullYear()===cY&&today.getMonth()===cM&&today.getDate()===d)el.classList.add('today');const key_=dk(cY,cM,d);if(CACHE[key_]&&CACHE[key_].some(lab=>lab.lines.some(l=>(+l.v||0)>0)))el.classList.add('hasdata');el.innerHTML=`<span class="wk-label">S${weekNum(d)}</span><div class="dnum">${d}</div><div class="dot"></div>`;el.onclick=()=>openDay(d);grid.appendChild(el);}renderMonthSummary();}
+window.chMonth=function(dir){cM+=dir;if(cM<0){cM=11;cY--;}if(cM>11){cM=0;cY++;}renderCal();}
+function calcDay(key_){let qty=0,neto=0,iva=0;if(!CACHE[key_])return{qty,neto,iva};CACHE[key_].forEach(lab=>lab.lines.forEach(l=>{qty+=(+l.q||0);neto+=(+l.q||0)*(+l.v||0);iva+=l.iva_edited?(+l.iva_manual||0):autoIva(l.q,l.v);}));return{qty,neto,iva};}
+function renderMonthSummary(){const sec=document.getElementById('month-summary-section');const totD=dim(cY,cM);const weeks={};for(let d=1;d<=totD;d++){const w=weekNum(d);if(!weeks[w])weeks[w]=[];weeks[w].push(d);}const wNums=Object.keys(weeks).map(Number).sort((a,b)=>a-b);let mQty=0,mNeto=0,mIva=0;const wData=wNums.map(w=>{let wQty=0,wNeto=0,wIva=0;weeks[w].forEach(d=>{const r=calcDay(dk(cY,cM,d));wQty+=r.qty;wNeto+=r.neto;wIva+=r.iva;});mQty+=wQty;mNeto+=wNeto;mIva+=wIva;return{w,wQty,wNeto,wIva};});const wRows=wData.map(r=>`<tr><td>Semana ${r.w}</td><td style="color:#666">${r.wQty>0?fmtN(r.wQty)+' uds.':'-'}</td><td>${r.wNeto>0?fmt(r.wNeto):'-'}</td><td style="color:#e63946">${r.wIva>0?fmt(r.wIva):'-'}</td><td style="color:#1d9e75;font-weight:700">${(r.wNeto+r.wIva)>0?fmt(r.wNeto+r.wIva):'-'}</td></tr>`).join('');sec.innerHTML=`<div class="month-title">&#9632; Resumen ${MESES[cM]} ${cY}</div><div class="month-grid"><div class="mcard"><div class="ml">Cantidad total</div><div class="mv">${fmtN(mQty)} uds.</div></div><div class="mcard"><div class="ml">Venta neta</div><div class="mv">${fmt(mNeto)}</div></div><div class="mcard"><div class="ml">IVA a pagar (19%)</div><div class="mv" style="color:#e63946">${fmt(mIva)}</div></div><div class="mcard accent"><div class="ml">Total con IVA</div><div class="mv">${fmt(mNeto+mIva)}</div></div></div><div class="wtbl-wrap"><table class="wtbl"><thead><tr><th style="text-align:left">Período</th><th>Cantidad</th><th>Venta neta</th><th>IVA 19%</th><th>Total c/IVA</th></tr></thead><tbody>${wRows}</tbody><tfoot><tr><td>Subtotal mes</td><td style="color:#666">${fmtN(mQty)} uds.</td><td>${fmt(mNeto)}</td><td style="color:#e63946">${fmt(mIva)}</td><td style="color:#1d9e75;font-weight:700">${fmt(mNeto+mIva)}</td></tr><tr class="grand"><td>TOTAL ${MESES[cM].toUpperCase()}</td><td>${fmtN(mQty)} uds.</td><td>${fmt(mNeto)}</td><td style="color:#f09595">${fmt(mIva)}</td><td style="color:#5dcaa5">${fmt(mNeto+mIva)}</td></tr></tfoot></table></div>`;}
+async function openDay(d){currentKey=dk(cY,cM,d);document.getElementById('view-cal').style.display='none';const vd=document.getElementById('view-day');vd.style.display='block';document.getElementById('dv-title').textContent=d+' de '+MESES[cM]+' '+cY+' — Semana '+weekNum(d);document.getElementById('labs-cont').innerHTML='<div class="loading">Cargando datos...</div>';setSaveStatus('saved');await loadDay(currentKey);renderLabs(currentKey);calcTots(currentKey);}
+window.showCal=function(){document.getElementById('view-day').style.display='none';document.getElementById('view-cal').style.display='block';renderCal();}
+function renderLabs(key_){const c=document.getElementById('labs-cont');c.innerHTML='';CACHE[key_].forEach((lab,li)=>{const neto=lab.lines.reduce((s,l)=>s+(+l.q||0)*(+l.v||0),0);const qty=lab.lines.reduce((s,l)=>s+(+l.q||0),0);const iva=lab.lines.reduce((s,l)=>s+(l.iva_edited?(+l.iva_manual||0):autoIva(l.q,l.v)),0);const card=document.createElement('div');card.className='lab-card';card.innerHTML=`<div class="lab-hd"><div class="lab-name"><div class="lab-icon">&#128300;</div>${lab.name}</div><div class="lab-tots"><div class="lt-item"><div class="ltl">Cant.</div><div class="ltv" id="lq${li}">${fmtN(qty)}</div></div><div class="lt-item"><div class="ltl">Neto</div><div class="ltv" id="ln${li}">${fmt(neto)}</div></div><div class="lt-item"><div class="ltl">IVA</div><div class="ltv" id="li${li}">${fmt(iva)}</div></div><div class="lt-item"><div class="ltl">Total</div><div class="ltv" id="lt${li}">${fmt(neto+iva)}</div></div></div></div><table class="dtbl"><thead><tr><th style="width:30%">Nombre / descripción</th><th style="width:10%">Cant.</th><th style="width:11%">Tamaño</th><th style="width:14%">Valor unit.</th><th style="width:18%">IVA 19%</th><th style="width:17%">Total línea</th></tr></thead><tbody id="tb${li}"></tbody></table><button class="add-btn" onclick="addLine('${key_}',${li})">+ Agregar línea</button>`;c.appendChild(card);renderLines(key_,li);});}
+function renderLines(key_,li){const tb=document.getElementById('tb'+li);tb.innerHTML='';CACHE[key_][li].lines.forEach((line,row)=>{const cIva=autoIva(line.q,line.v);const ivaVal=line.iva_edited?(+line.iva_manual||0):cIva;const tot=(+line.q||0)*(+line.v||0)+ivaVal;const tr=document.createElement('tr');tr.innerHTML=`<td><input class="ti" value="${line.n||''}" placeholder="Descripción" oninput="sf('${key_}',${li},${row},'n',this.value)"></td><td><input class="ti" value="${line.q||''}" placeholder="0" style="width:46px" oninput="sf('${key_}',${li},${row},'q',this.value)"></td><td><input class="ti" value="${line.s||''}" placeholder="M" oninput="sf('${key_}',${li},${row},'s',this.value)"></td><td><input class="ti" value="${line.v||''}" placeholder="0" oninput="sf('${key_}',${li},${row},'v',this.value)"></td><td><input class="ti" id="iva_${li}_${row}" value="${line.iva_edited?line.iva_manual:(cIva||'')}" placeholder="auto" style="width:66px" oninput="sfIva('${key_}',${li},${row},this.value)">${!line.iva_edited?'<span class="iva-auto">auto</span>':''}</td><td style="font-weight:600;font-size:12px">${tot>0?fmt(tot):'-'}</td>`;tb.appendChild(tr);});}
+window.sf=function(key_,li,row,field,val){CACHE[key_][li].lines[row][field]=val;if((field==='q'||field==='v')&&!CACHE[key_][li].lines[row].iva_edited){const inp=document.getElementById('iva_'+li+'_'+row);if(inp){const av=autoIva(CACHE[key_][li].lines[row].q,CACHE[key_][li].lines[row].v);inp.value=av||'';}}refreshLab(key_,li);scheduleSave(key_);}
+window.sfIva=function(key_,li,row,val){CACHE[key_][li].lines[row].iva_manual=val;CACHE[key_][li].lines[row].iva_edited=val!=='';const ivaCell=document.getElementById('tb'+li).rows[row].cells[4];const sp=ivaCell.querySelector('.iva-auto');if(sp&&val!=='')sp.remove();if(!sp&&val===''){const s=document.createElement('span');s.className='iva-auto';s.textContent='auto';ivaCell.appendChild(s);}refreshLab(key_,li);scheduleSave(key_);}
+function refreshLab(key_,li){const lab=CACHE[key_][li];const neto=lab.lines.reduce((s,l)=>s+(+l.q||0)*(+l.v||0),0);const qty=lab.lines.reduce((s,l)=>s+(+l.q||0),0);const iva=lab.lines.reduce((s,l)=>s+(l.iva_edited?(+l.iva_manual||0):autoIva(l.q,l.v)),0);document.getElementById('lq'+li).textContent=fmtN(qty);document.getElementById('ln'+li).textContent=fmt(neto);document.getElementById('li'+li).textContent=fmt(iva);document.getElementById('lt'+li).textContent=fmt(neto+iva);lab.lines.forEach((_,row)=>{const tb=document.getElementById('tb'+li);if(!tb||!tb.rows[row])return;const line=lab.lines[row];const ivaV=line.iva_edited?(+line.iva_manual||0):autoIva(line.q,line.v);const tot=(+line.q||0)*(+line.v||0)+ivaV;tb.rows[row].cells[5].textContent=tot>0?fmt(tot):'-';});calcTots(key_);}
+window.addLine=function(key_,li){CACHE[key_][li].lines.push({n:'',q:'',s:'',v:'',iva_manual:'',iva_edited:false});renderLines(key_,li);scheduleSave(key_);}
+function calcTots(key_){let neto=0,qty=0,iva=0;CACHE[key_].forEach(lab=>lab.lines.forEach(l=>{neto+=(+l.q||0)*(+l.v||0);qty+=(+l.q||0);iva+=l.iva_edited?(+l.iva_manual||0):autoIva(l.q,l.v);}));document.getElementById('s-neto').textContent=fmt(neto);document.getElementById('s-iva').textContent=fmt(iva);document.getElementById('s-tot').textContent=fmt(neto+iva);document.getElementById('tb-qty').textContent=fmtN(qty);document.getElementById('tb-neto').textContent=fmt(neto);document.getElementById('tb-iva').textContent=fmt(iva);document.getElementById('tb-total').textContent=fmt(neto+iva);updateBadge();}
+function updateBadge(){let c=0;Object.values(CACHE).forEach(day=>day.forEach(lab=>lab.lines.forEach(l=>{if((+l.v||0)>0)c++;})));document.getElementById('total-badge').textContent=c+' registro'+(c!==1?'s':'');}
+</script>
+</body>
+</html>
